@@ -1,4 +1,4 @@
-# Test image for the CTFd OAuth2 IdP plugin.
+# Test image for the CTFd OIDC IdP plugin.
 #
 # The official CTFd entrypoint does NOT install plugin requirements, so we bake
 # the plugin's only dependency (Authlib) into the image here. The plugin *code*
