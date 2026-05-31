@@ -1,0 +1,32 @@
+# Declarative OAuth2 application definitions for the CTFd OAuth2 IdP plugin.
+#
+# Mount this file into the container and point OAUTH2_PROVIDER_APPS_FILE at it
+# (see docker-compose.yml). Apps are matched by `client_id` and upserted on
+# every startup: edit + restart to apply changes. Removing an entry here does
+# NOT delete the app — remove it from the admin UI.
+
+applications:
+  # A confidential app (server-side): authenticates with a client secret.
+  # The included demo-client uses these credentials by default.
+  # `trusted: true` makes it a first-party app: the consent screen is skipped
+  # and access is auto-approved for the logged-in user.
+  - name: Demo Confidential App
+    client_id: demo-confidential
+    client_secret: demo-confidential-secret
+    type: confidential
+    trusted: true
+    client_uri: http://localhost:5000
+    redirect_uris:
+      - http://localhost:5000/callback
+    scopes: [openid, profile, email, team]
+    grant_types: [authorization_code, refresh_token]
+    token_endpoint_auth_method: client_secret_basic
+
+  # A public app (SPA / mobile / CLI): no secret, PKCE is enforced.
+  - name: Demo Public App (PKCE)
+    client_id: demo-public
+    type: public
+    redirect_uris:
+      - http://localhost:5000/callback
+      - myapp://callback
+    scopes: [openid, profile, team]

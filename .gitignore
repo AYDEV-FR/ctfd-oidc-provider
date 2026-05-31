@@ -1,0 +1,14 @@
+# Locally generated OIDC signing key — must NOT be committed.
+jwks_private.json
+__pycache__/
+*.pyc
+
+# Local docker test credentials
+.env
+
+# Local editor/agent settings — not part of the plugin
+.claude/
+
+# Misc local artifacts
+_verify*.py
+_*.json

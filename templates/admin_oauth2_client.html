@@ -1,0 +1,158 @@
+{% extends "admin/base.html" %}
+
+{% set is_new = client is none %}
+{% set selected_scopes = (client.scope.split() if client and client.scope else ['openid', 'profile', 'email']) %}
+{% set client_grant_types = (client.grant_types if client else ['authorization_code']) %}
+
+{% block content %}
+<div class="jumbotron">
+  <div class="container">
+    <h1>{{ "Register application" if is_new else "Edit application" }}</h1>
+  </div>
+</div>
+
+<div class="container">
+  {% if new_secret %}
+  <div class="alert alert-warning">
+    <h5>Client secret (shown only once &mdash; copy it now)</h5>
+    <p><strong>Client ID:</strong> <code>{{ client.client_id }}</code></p>
+    <p><strong>Client secret:</strong> <code>{{ new_secret }}</code></p>
+  </div>
+  {% endif %}
+
+  {% if not is_new %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Credentials</h5>
+      <p><strong>Type:</strong>
+        {% if client.is_confidential %}
+        <span class="badge badge-primary">confidential</span>
+        {% else %}
+        <span class="badge badge-info">public</span>
+        {% endif %}
+      </p>
+      <p><strong>Client ID:</strong> <code>{{ client.client_id }}</code></p>
+      {% if client.is_confidential %}
+      <p><strong>Client secret:</strong> <em>hidden &mdash; rotate to generate a new one</em></p>
+      <form method="POST"
+            action="{{ url_for('oauth2_provider.admin_rotate_secret', client_pk=client.id) }}"
+            onsubmit="return confirm('Rotate secret? The old secret will stop working immediately.');">
+        <input type="hidden" name="nonce" value="{{ nonce }}">
+        <button type="submit" class="btn btn-sm btn-outline-warning">Rotate secret</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="POST"
+        action="{{ url_for('oauth2_provider.admin_create_client') if is_new else url_for('oauth2_provider.admin_update_client', client_pk=client.id) }}">
+    <input type="hidden" name="nonce" value="{{ nonce }}">
+
+    <div class="form-group">
+      <label>Application name</label>
+      <input type="text" name="client_name" class="form-control"
+             value="{{ client.client_name if client else '' }}" required>
+    </div>
+
+    <div class="form-group">
+      <label>Application homepage URL (optional)</label>
+      <input type="url" name="client_uri" class="form-control"
+             value="{{ client.client_uri if client else '' }}">
+    </div>
+
+    {% if is_new %}
+    <div class="form-group">
+      <label>Application type</label>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="client_type" id="type_conf"
+               value="confidential" checked onchange="toggleAuthMethod()">
+        <label class="form-check-label" for="type_conf">
+          <strong>Confidential</strong> &mdash; can keep a secret (server-side web apps). Issued a client secret.
+        </label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="client_type" id="type_pub"
+               value="public" onchange="toggleAuthMethod()">
+        <label class="form-check-label" for="type_pub">
+          <strong>Public</strong> &mdash; cannot keep a secret (SPAs, mobile, CLI). PKCE is required.
+        </label>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if is_new or client.is_confidential %}
+    <div class="form-group" id="auth_method_group">
+      <label>Token endpoint authentication method</label>
+      <select name="token_endpoint_auth_method" class="form-control">
+        <option value="client_secret_basic"
+          {{ 'selected' if client and client.token_endpoint_auth_method == 'client_secret_basic' else '' }}>
+          client_secret_basic (HTTP Basic auth header)
+        </option>
+        <option value="client_secret_post"
+          {{ 'selected' if client and client.token_endpoint_auth_method == 'client_secret_post' else '' }}>
+          client_secret_post (secret in request body)
+        </option>
+      </select>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+      <label>Redirect URIs (one per line)</label>
+      <textarea name="redirect_uris" class="form-control" rows="3"
+                placeholder="https://app.example.com/callback">{{ client.redirect_uris | join('\n') if client else '' }}</textarea>
+      <small class="form-text text-muted">Exact match required at authorization time.</small>
+    </div>
+
+    <div class="form-group">
+      <label>Allowed scopes</label>
+      {% for scope, description in scopes.items() %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="scopes" value="{{ scope }}"
+               id="scope_{{ scope }}" {{ 'checked' if scope in selected_scopes else '' }}>
+        <label class="form-check-label" for="scope_{{ scope }}">
+          <code>{{ scope }}</code> &mdash; {{ description }}
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="form-group">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="allow_refresh" value="yes"
+               id="allow_refresh" {{ 'checked' if 'refresh_token' in client_grant_types else '' }}>
+        <label class="form-check-label" for="allow_refresh">
+          Allow refresh tokens
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="trusted" value="yes"
+               id="trusted" {{ 'checked' if client and client.is_trusted else '' }}>
+        <label class="form-check-label" for="trusted">
+          <strong>Trusted application</strong> &mdash; skip the consent screen
+          (auto-approve). Only enable for first-party apps you control.
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">
+      {{ "Register application" if is_new else "Save changes" }}
+    </button>
+    <a href="{{ url_for('oauth2_provider.admin_clients') }}" class="btn btn-outline-secondary">Back</a>
+  </form>
+</div>
+
+<script>
+function toggleAuthMethod() {
+  var pub = document.getElementById('type_pub');
+  var group = document.getElementById('auth_method_group');
+  if (group) {
+    group.style.display = (pub && pub.checked) ? 'none' : 'block';
+  }
+}
+document.addEventListener('DOMContentLoaded', toggleAuthMethod);
+</script>
+{% endblock %}

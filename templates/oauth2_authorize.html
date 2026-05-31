@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card mt-5">
+        <div class="card-body text-center">
+          <h3 class="card-title">Authorize {{ client.client_name }}</h3>
+          {% if client.client_uri %}
+          <p><a href="{{ client.client_uri }}" target="_blank" rel="noopener">{{ client.client_uri }}</a></p>
+          {% endif %}
+
+          <p class="text-muted">
+            Signed in as <strong>{{ user.name }}</strong>.
+            <span class="badge badge-secondary">{{ client.client_type }}</span>
+          </p>
+
+          <p><strong>{{ client.client_name }}</strong> is requesting permission to:</p>
+          <ul class="list-group text-left mb-4">
+            {% for scope, description in scopes %}
+            <li class="list-group-item">
+              <code>{{ scope }}</code> &mdash; {{ description }}
+            </li>
+            {% else %}
+            <li class="list-group-item">Confirm your identity</li>
+            {% endfor %}
+          </ul>
+
+          <form method="POST" action="">
+            <input type="hidden" name="nonce" value="{{ nonce }}">
+            <div class="d-flex justify-content-between">
+              <button type="submit" name="confirm" value="no" class="btn btn-outline-secondary btn-lg">
+                Cancel
+              </button>
+              <button type="submit" name="confirm" value="yes" class="btn btn-success btn-lg">
+                Authorize
+              </button>
+            </div>
+          </form>
+
+          <p class="text-muted mt-3" style="font-size: 0.8rem;">
+            You can revoke this access at any time from
+            <a href="/oauth2/authorizations">Authorized Apps</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

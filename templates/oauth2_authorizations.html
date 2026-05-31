@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h2 class="mt-4">Authorized Applications</h2>
+      <p class="text-muted">Applications you have granted access to your CTFd account.</p>
+
+      {% if rows %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Application</th>
+            <th>Scopes</th>
+            <th>Granted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.client.client_name if row.client else row.token.client_id }}</td>
+            <td><small>{{ row.token.get_scope() }}</small></td>
+            <td><small>{{ row.token.issued_at }}</small></td>
+            <td class="text-right">
+              <form method="POST"
+                    action="{{ url_for('oauth2_provider.revoke_authorization', token_id=row.token.id) }}"
+                    onsubmit="return confirm('Revoke access for this application?');">
+                <input type="hidden" name="nonce" value="{{ Session.nonce }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="alert alert-info">You haven't authorized any applications yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

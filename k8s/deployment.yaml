@@ -1,0 +1,119 @@
+# Example: run upstream CTFd and inject the OIDC provider plugin at runtime by
+# mounting it from the published OCI image via an initContainer.
+#
+#   kubectl apply -f k8s/
+#
+# Adjust the image tags, issuer URL, ingress/Service, and storage classes for
+# your cluster. This example uses SQLite on a PVC for brevity; use the MySQL +
+# Redis CTFd setup for anything real.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ctfd-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ctfd-oidc-jwk
+  # Holds the RSA signing key so it survives restarts and is shared by all
+  # workers in the pod. Use ReadWriteMany if you scale to multiple pods.
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 16Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctfd
+  labels: { app: ctfd }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: ctfd }
+  template:
+    metadata:
+      labels: { app: ctfd }
+    spec:
+      securityContext:
+        # CTFd image runs as uid/gid 1001; make mounted volumes writable by it.
+        fsGroup: 1001
+
+      volumes:
+        - name: oidc-plugin
+          emptyDir: {}
+        - name: oidc-deps
+          emptyDir: {}
+        - name: ctfd-data
+          persistentVolumeClaim:
+            claimName: ctfd-data
+        - name: oidc-jwk
+          persistentVolumeClaim:
+            claimName: ctfd-oidc-jwk
+
+      initContainers:
+        # Copies the plugin package and its vendored deps out of the OCI image
+        # into shared volumes that the CTFd container then consumes.
+        - name: install-oidc-plugin
+          image: ghcr.io/aydev-fr/ctfd-oidc-provider:latest
+          imagePullPolicy: Always
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              cp -r /plugin/oauth2_provider/. /dst-plugin/
+              cp -r /plugin/deps/. /dst-deps/
+              echo "OIDC plugin + deps staged."
+          volumeMounts:
+            - { name: oidc-plugin, mountPath: /dst-plugin }
+            - { name: oidc-deps,   mountPath: /dst-deps }
+
+      containers:
+        - name: ctfd
+          image: ctfd/ctfd:3.8.5
+          ports:
+            - containerPort: 8000
+          env:
+            # Make the vendored python deps importable by CTFd.
+            - { name: PYTHONPATH, value: /opt/oidc-deps }
+            # Stable issuer + persistent signing key location.
+            - { name: OAUTH2_PROVIDER_ISSUER, value: "https://ctf.example.com" }
+            - { name: OAUTH2_PROVIDER_JWK_FILE, value: /opt/oidc-jwk/jwks_private.json }
+            # SQLite on a PVC (replace with DATABASE_URL/REDIS_URL for production).
+            - { name: DATABASE_URL, value: "sqlite:////opt/CTFd/CTFd/uploads/ctfd.db" }
+            - { name: SECRET_KEY, value: "change-me-in-a-secret" }
+            - { name: WORKERS, value: "1" }
+          volumeMounts:
+            # Mount ONLY the plugin subdir, so CTFd's built-in plugins remain.
+            - name: oidc-plugin
+              mountPath: /opt/CTFd/CTFd/plugins/oauth2_provider
+            - name: oidc-deps
+              mountPath: /opt/oidc-deps
+            - name: oidc-jwk
+              mountPath: /opt/oidc-jwk
+            - name: ctfd-data
+              mountPath: /opt/CTFd/CTFd/uploads
+          readinessProbe:
+            httpGet: { path: /setup, port: 8000 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ctfd
+  labels: { app: ctfd }
+spec:
+  selector: { app: ctfd }
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000

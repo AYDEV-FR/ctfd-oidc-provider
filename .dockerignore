@@ -1,0 +1,14 @@
+# Keep the plugin OCI image small and free of local/test artifacts.
+.git
+.github
+.claude
+__pycache__
+*.pyc
+jwks_private.json
+.env
+demo-client
+docker-compose.yml
+Dockerfile
+k8s
+README.md
+*.md

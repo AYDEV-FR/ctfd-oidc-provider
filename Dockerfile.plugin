@@ -1,0 +1,30 @@
+# Plugin-only OCI image, for mounting the plugin into CTFd at runtime
+# (e.g. as a Kubernetes initContainer that copies it into shared volumes).
+#
+# It does NOT contain CTFd. It carries:
+#   /plugin/oauth2_provider/  -> the plugin package (code, templates, assets)
+#   /plugin/deps/             -> vendored Python deps (Authlib, PyYAML) for PYTHONPATH
+#
+# Built and published to GHCR by .github/workflows/build-oci.yml.
+# See the README ("Kubernetes — mount as a volume") and k8s/ for usage.
+FROM python:3.11-slim
+
+ARG PLUGIN_NAME=oauth2_provider
+ENV PLUGIN_DIR=/plugin/${PLUGIN_NAME}
+
+WORKDIR /plugin
+
+# Vendor the Python dependencies into /plugin/deps so they can be put on
+# PYTHONPATH inside the CTFd container without touching its image.
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --target /plugin/deps -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
+
+# Copy the plugin package itself.
+COPY __init__.py models.py oauth2.py views.py provisioning.py config.json ${PLUGIN_DIR}/
+COPY templates ${PLUGIN_DIR}/templates
+COPY assets ${PLUGIN_DIR}/assets
+
+# Image is used as a short-lived initContainer; default command just lists the
+# payload so `docker run` is informative.
+CMD ["sh", "-c", "echo 'CTFd OIDC provider plugin image' && ls -R /plugin | head -50"]

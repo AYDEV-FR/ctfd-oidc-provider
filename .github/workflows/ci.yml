@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Byte-compile the plugin
+        run: python -m py_compile __init__.py models.py oauth2.py views.py provisioning.py demo-client/app.py
+
+      - name: Install deps (import smoke test)
+        run: pip install -r requirements.txt
+
+      - name: Validate YAML / JSON config
+        run: |
+          python -c "import json; json.load(open('config.json')); print('config.json OK')"
+          python -c "import yaml; yaml.safe_load(open('oauth2_apps.example.yaml')); print('example yaml OK')"

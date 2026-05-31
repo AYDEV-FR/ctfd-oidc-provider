@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="jumbotron">
+  <div class="container">
+    <h1>OAuth2 Applications</h1>
+    <p class="lead">Applications that can use this CTFd as an OAuth2 / OpenID Connect identity provider.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <a href="{{ url_for('oauth2_provider.admin_new_client') }}" class="btn btn-success">
+        + Register application
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      {% if clients %}
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Client ID</th>
+            <th>Redirect URIs</th>
+            <th>Scopes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for client in clients %}
+          <tr>
+            <td>
+              <a href="{{ url_for('oauth2_provider.admin_edit_client', client_pk=client.id) }}">
+                {{ client.client_name or "Unnamed app" }}
+              </a>
+            </td>
+            <td>
+              {% if client.is_confidential %}
+              <span class="badge badge-primary">confidential</span>
+              {% else %}
+              <span class="badge badge-info">public</span>
+              {% endif %}
+              {% if client.is_trusted %}
+              <span class="badge badge-warning">trusted</span>
+              {% endif %}
+            </td>
+            <td><code>{{ client.client_id }}</code></td>
+            <td>
+              {% for uri in client.redirect_uris %}
+              <div><small>{{ uri }}</small></div>
+              {% endfor %}
+            </td>
+            <td><small>{{ client.scope }}</small></td>
+            <td class="text-right">
+              <a href="{{ url_for('oauth2_provider.admin_edit_client', client_pk=client.id) }}"
+                 class="btn btn-sm btn-outline-secondary">Edit</a>
+              <form method="POST"
+                    action="{{ url_for('oauth2_provider.admin_delete_client', client_pk=client.id) }}"
+                    style="display:inline"
+                    onsubmit="return confirm('Delete this application? Existing tokens will stop working.');">
+                <input type="hidden" name="nonce" value="{{ Session.nonce }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="alert alert-info">No applications registered yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

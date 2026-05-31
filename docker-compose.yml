@@ -1,0 +1,65 @@
+# Quick local test harness for the CTFd OAuth2 / OIDC Identity Provider plugin.
+#
+#   docker compose up --build           # start CTFd with the plugin mounted
+#   open http://localhost:8000          # complete the CTFd setup wizard
+#
+# Optional demo relying-party app (see README "Try the full login flow"):
+#   docker compose --profile demo up --build
+#
+# Data persists in named volumes; `docker compose down -v` wipes it for a
+# clean slate.
+
+services:
+  ctfd:
+    build: .
+    container_name: ctfd-oauth2-idp
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Allow OAuth2 over plain HTTP for LOCAL testing only. Never in production.
+      - AUTHLIB_INSECURE_TRANSPORT=1
+      # Persist the SQLite DB on a writable volume (see ./Dockerfile /data).
+      - DATABASE_URL=sqlite:////data/ctfd.db
+      # Stable key so admin sessions survive restarts. Change for any real use.
+      - SECRET_KEY=local-dev-not-secret-change-me
+      - WORKERS=1
+      # Declaratively provision OAuth2 apps from the mounted YAML file below.
+      - OAUTH2_PROVIDER_APPS_FILE=/etc/ctfd/oauth2_apps.yaml
+    volumes:
+      # Live-mount the plugin source. Folder name == plugin import name.
+      - ./:/opt/CTFd/CTFd/plugins/oauth2_provider
+      # Declarative app definitions, created/updated at startup.
+      - ./oauth2_apps.example.yaml:/etc/ctfd/oauth2_apps.yaml:ro
+      - ctfd_db:/data
+      - ctfd_uploads:/opt/CTFd/CTFd/uploads
+      - ctfd_logs:/opt/CTFd/CTFd/logs
+
+  # Optional: a tiny "Login with CTFd" client to exercise the full flow.
+  # Register a CONFIDENTIAL app in CTFd admin first, then put its credentials
+  # in a .env file (see .env.example) and start this with --profile demo.
+  demo-client:
+    build: ./demo-client
+    container_name: ctfd-oauth2-demo-client
+    profiles: ["demo"]
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Browser-facing CTFd URL (used for the authorize redirect).
+      - CTFD_PUBLIC_URL=http://localhost:8000
+      # Back-channel URL the client uses to reach CTFd inside the compose network.
+      - CTFD_INTERNAL_URL=http://ctfd:8000
+      - REDIRECT_URI=http://localhost:5000/callback
+      - OAUTH_SCOPE=openid profile email team
+      # Defaults match the "Demo Confidential App" in oauth2_apps.example.yaml,
+      # so the flow works out of the box. Override via .env if desired.
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID:-demo-confidential}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET:-demo-confidential-secret}
+    depends_on:
+      - ctfd
+
+volumes:
+  ctfd_db:
+  ctfd_uploads:
+  ctfd_logs:
