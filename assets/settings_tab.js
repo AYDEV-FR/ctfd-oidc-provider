@@ -129,14 +129,26 @@
       method: "POST",
       credentials: "same-origin",
       headers: {
+        // CTFd validates the CSRF-Token header ONLY when the request declares a
+        // JSON content type; otherwise it expects a form `nonce` field and would
+        // 403 this request. So we must send Content-Type: application/json.
+        "Content-Type": "application/json",
         "CSRF-Token": csrfNonce(),
         Accept: "application/json",
       },
+      body: "{}",
     })
+      .then(function (r) {
+        if (!r.ok) {
+          throw new Error("Revoke failed with HTTP " + r.status);
+        }
+        return r.json();
+      })
       .then(function () {
         loadApps(pane);
       })
       .catch(function () {
+        // Reload either way so the list reflects the true server state.
         loadApps(pane);
       });
   }
