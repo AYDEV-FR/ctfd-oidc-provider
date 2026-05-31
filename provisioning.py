@@ -3,7 +3,7 @@
 This lets you define applications as code and mount the file into the container
 (infrastructure-as-code), instead of registering them by hand in the admin UI.
 
-Enable it by pointing ``OAUTH2_PROVIDER_APPS_FILE`` (env var or CTFd config) at
+Enable it by pointing ``OIDC_PROVIDER_APPS_FILE`` (env var or CTFd config) at
 a YAML file, e.g.:
 
     applications:
@@ -40,8 +40,8 @@ DEFAULT_SCOPES = ["openid", "profile", "email"]
 
 
 def _config_path(app):
-    return os.environ.get("OAUTH2_PROVIDER_APPS_FILE") or app.config.get(
-        "OAUTH2_PROVIDER_APPS_FILE"
+    return os.environ.get("OIDC_PROVIDER_APPS_FILE") or app.config.get(
+        "OIDC_PROVIDER_APPS_FILE"
     )
 
 
@@ -53,7 +53,7 @@ def provision_from_yaml(app):
 
     if not os.path.exists(path):
         app.logger.warning(
-            "OAuth2 IdP: apps file %s not found; skipping provisioning", path
+            "OIDC IdP: apps file %s not found; skipping provisioning", path
         )
         return
 
@@ -61,7 +61,7 @@ def provision_from_yaml(app):
         import yaml
     except ImportError:
         app.logger.error(
-            "OAuth2 IdP: PyYAML is required for YAML provisioning but is not installed."
+            "OIDC IdP: PyYAML is required for YAML provisioning but is not installed."
         )
         return
 
@@ -69,13 +69,13 @@ def provision_from_yaml(app):
         with open(path) as fh:
             data = yaml.safe_load(fh) or {}
     except Exception as exc:  # malformed YAML / IO error
-        app.logger.error("OAuth2 IdP: failed to read %s: %s", path, exc)
+        app.logger.error("OIDC IdP: failed to read %s: %s", path, exc)
         return
 
     entries = data.get("applications") or data.get("apps") or []
     if not isinstance(entries, list):
         app.logger.error(
-            "OAuth2 IdP: '%s' must contain a list under 'applications'", path
+            "OIDC IdP: '%s' must contain a list under 'applications'", path
         )
         return
 
@@ -90,12 +90,12 @@ def provision_from_yaml(app):
         except Exception as exc:
             failed += 1
             name = entry.get("name") if isinstance(entry, dict) else entry
-            app.logger.error("OAuth2 IdP: could not provision %r: %s", name, exc)
+            app.logger.error("OIDC IdP: could not provision %r: %s", name, exc)
 
     if created or updated:
         db.session.commit()
     app.logger.info(
-        "OAuth2 IdP: provisioned apps from %s (created=%d, updated=%d, failed=%d)",
+        "OIDC IdP: provisioned apps from %s (created=%d, updated=%d, failed=%d)",
         path,
         created,
         updated,
@@ -170,7 +170,7 @@ def _upsert(app, entry):
             secret = generate_token(48)
             client.client_secret = secret
             app.logger.warning(
-                "OAuth2 IdP: generated client_secret for '%s': %s", client_id, secret
+                "OIDC IdP: generated client_secret for '%s': %s", client_id, secret
             )
 
     if existing is None:

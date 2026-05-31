@@ -4,8 +4,8 @@ Two route groups are exposed:
 
 * The OAuth2/OIDC protocol endpoints (``/oauth/...``, ``/.well-known/...``)
   consumed by relying-party applications.
-* An admin UI (``/admin/oauth2/...``) for registering and managing applications,
-  plus a user page (``/oauth2/authorizations``) to review/revoke granted access.
+* An admin UI (``/admin/oidc/...``) for registering and managing applications,
+  plus a user page (``/oidc/authorizations``) to review/revoke granted access.
 """
 
 import os
@@ -82,7 +82,7 @@ def _wants_json():
 
 
 def load_blueprint():
-    blueprint = Blueprint("oauth2_provider", __name__, template_folder=TEMPLATES_DIR)
+    blueprint = Blueprint("oidc_provider", __name__, template_folder=TEMPLATES_DIR)
 
     # ---------------------------------------------------------------------
     # Discovery
@@ -210,7 +210,7 @@ def load_blueprint():
     # ---------------------------------------------------------------------
     # User: review & revoke authorized applications
     # ---------------------------------------------------------------------
-    @blueprint.route("/oauth2/authorizations")
+    @blueprint.route("/oidc/authorizations")
     @authed_only
     def authorizations():
         user = get_current_user()
@@ -248,7 +248,7 @@ def load_blueprint():
             )
         return render("oauth2_authorizations.html", user=user, rows=rows)
 
-    @blueprint.route("/oauth2/authorizations/<int:token_id>/revoke", methods=["POST"])
+    @blueprint.route("/oidc/authorizations/<int:token_id>/revoke", methods=["POST"])
     @authed_only
     def revoke_authorization(token_id):
         user = get_current_user()
@@ -261,18 +261,18 @@ def load_blueprint():
         db.session.commit()
         if _wants_json():
             return jsonify({"success": True})
-        return redirect(url_for("oauth2_provider.authorizations"))
+        return redirect(url_for("oidc_provider.authorizations"))
 
     # ---------------------------------------------------------------------
     # Admin: application management
     # ---------------------------------------------------------------------
-    @blueprint.route("/admin/oauth2")
+    @blueprint.route("/admin/oidc")
     @admins_only
     def admin_clients():
         clients = OAuth2Client.query.order_by(OAuth2Client.id.desc()).all()
         return render("admin_oauth2_clients.html", clients=clients)
 
-    @blueprint.route("/admin/oauth2/new")
+    @blueprint.route("/admin/oidc/new")
     @admins_only
     def admin_new_client():
         return render(
@@ -283,7 +283,7 @@ def load_blueprint():
             new_secret=None,
         )
 
-    @blueprint.route("/admin/oauth2/create", methods=["POST"])
+    @blueprint.route("/admin/oidc/create", methods=["POST"])
     @admins_only
     def admin_create_client():
         user = get_current_user()
@@ -318,7 +318,7 @@ def load_blueprint():
             new_secret=new_secret,
         )
 
-    @blueprint.route("/admin/oauth2/<int:client_pk>")
+    @blueprint.route("/admin/oidc/<int:client_pk>")
     @admins_only
     def admin_edit_client(client_pk):
         client = OAuth2Client.query.filter_by(id=client_pk).first()
@@ -332,7 +332,7 @@ def load_blueprint():
             new_secret=None,
         )
 
-    @blueprint.route("/admin/oauth2/<int:client_pk>/update", methods=["POST"])
+    @blueprint.route("/admin/oidc/<int:client_pk>/update", methods=["POST"])
     @admins_only
     def admin_update_client(client_pk):
         client = OAuth2Client.query.filter_by(id=client_pk).first()
@@ -349,9 +349,9 @@ def load_blueprint():
             auth_method = "none"
         _apply_client_metadata(client, auth_method)
         db.session.commit()
-        return redirect(url_for("oauth2_provider.admin_edit_client", client_pk=client.id))
+        return redirect(url_for("oidc_provider.admin_edit_client", client_pk=client.id))
 
-    @blueprint.route("/admin/oauth2/<int:client_pk>/rotate-secret", methods=["POST"])
+    @blueprint.route("/admin/oidc/<int:client_pk>/rotate-secret", methods=["POST"])
     @admins_only
     def admin_rotate_secret(client_pk):
         client = OAuth2Client.query.filter_by(id=client_pk).first()
@@ -370,7 +370,7 @@ def load_blueprint():
             new_secret=new_secret,
         )
 
-    @blueprint.route("/admin/oauth2/<int:client_pk>/delete", methods=["POST"])
+    @blueprint.route("/admin/oidc/<int:client_pk>/delete", methods=["POST"])
     @admins_only
     def admin_delete_client(client_pk):
         client = OAuth2Client.query.filter_by(id=client_pk).first()
@@ -378,7 +378,7 @@ def load_blueprint():
             abort(404)
         db.session.delete(client)
         db.session.commit()
-        return redirect(url_for("oauth2_provider.admin_clients"))
+        return redirect(url_for("oidc_provider.admin_clients"))
 
     return blueprint
 

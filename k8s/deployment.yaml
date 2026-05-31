@@ -69,7 +69,7 @@ spec:
             - -c
             - |
               set -e
-              cp -r /plugin/oauth2_provider/. /dst-plugin/
+              cp -r /plugin/oidc_provider/. /dst-plugin/
               cp -r /plugin/deps/. /dst-deps/
               echo "OIDC plugin + deps staged."
           volumeMounts:
@@ -85,8 +85,8 @@ spec:
             # Make the vendored python deps importable by CTFd.
             - { name: PYTHONPATH, value: /opt/oidc-deps }
             # Stable issuer + persistent signing key location.
-            - { name: OAUTH2_PROVIDER_ISSUER, value: "https://ctf.example.com" }
-            - { name: OAUTH2_PROVIDER_JWK_FILE, value: /opt/oidc-jwk/jwks_private.json }
+            - { name: OIDC_PROVIDER_ISSUER, value: "https://ctf.example.com" }
+            - { name: OIDC_PROVIDER_JWK_FILE, value: /opt/oidc-jwk/jwks_private.json }
             # SQLite on a PVC (replace with DATABASE_URL/REDIS_URL for production).
             - { name: DATABASE_URL, value: "sqlite:////opt/CTFd/CTFd/uploads/ctfd.db" }
             - { name: SECRET_KEY, value: "change-me-in-a-secret" }
@@ -94,7 +94,7 @@ spec:
           volumeMounts:
             # Mount ONLY the plugin subdir, so CTFd's built-in plugins remain.
             - name: oidc-plugin
-              mountPath: /opt/CTFd/CTFd/plugins/oauth2_provider
+              mountPath: /opt/CTFd/CTFd/plugins/oidc_provider
             - name: oidc-deps
               mountPath: /opt/oidc-deps
             - name: oidc-jwk

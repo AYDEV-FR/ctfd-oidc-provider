@@ -26,4 +26,4 @@ jobs:
       - name: Validate YAML / JSON config
         run: |
           python -c "import json; json.load(open('config.json')); print('config.json OK')"
-          python -c "import yaml; yaml.safe_load(open('oauth2_apps.example.yaml')); print('example yaml OK')"
+          python -c "import yaml; yaml.safe_load(open('oidc_apps.example.yaml')); print('example yaml OK')"

@@ -25,12 +25,12 @@ services:
       - SECRET_KEY=local-dev-not-secret-change-me
       - WORKERS=1
       # Declaratively provision OAuth2 apps from the mounted YAML file below.
-      - OAUTH2_PROVIDER_APPS_FILE=/etc/ctfd/oauth2_apps.yaml
+      - OIDC_PROVIDER_APPS_FILE=/etc/ctfd/oidc_apps.yaml
     volumes:
       # Live-mount the plugin source. Folder name == plugin import name.
-      - ./:/opt/CTFd/CTFd/plugins/oauth2_provider
+      - ./:/opt/CTFd/CTFd/plugins/oidc_provider
       # Declarative app definitions, created/updated at startup.
-      - ./oauth2_apps.example.yaml:/etc/ctfd/oauth2_apps.yaml:ro
+      - ./oidc_apps.example.yaml:/etc/ctfd/oidc_apps.yaml:ro
       - ctfd_db:/data
       - ctfd_uploads:/opt/CTFd/CTFd/uploads
       - ctfd_logs:/opt/CTFd/CTFd/logs
@@ -52,7 +52,7 @@ services:
       - CTFD_INTERNAL_URL=http://ctfd:8000
       - REDIRECT_URI=http://localhost:5000/callback
       - OAUTH_SCOPE=openid profile email team
-      # Defaults match the "Demo Confidential App" in oauth2_apps.example.yaml,
+      # Defaults match the "Demo Confidential App" in oidc_apps.example.yaml,
       # so the flow works out of the box. Override via .env if desired.
       - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID:-demo-confidential}
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET:-demo-confidential-secret}

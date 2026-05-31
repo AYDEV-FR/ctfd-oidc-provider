@@ -9,7 +9,7 @@
 # See the README ("Kubernetes — mount as a volume") and k8s/ for usage.
 FROM python:3.11-slim
 
-ARG PLUGIN_NAME=oauth2_provider
+ARG PLUGIN_NAME=oidc_provider
 ENV PLUGIN_DIR=/plugin/${PLUGIN_NAME}
 
 WORKDIR /plugin

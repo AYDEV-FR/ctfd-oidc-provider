@@ -8,7 +8,7 @@
 (function () {
   "use strict";
 
-  var TAB_ID = "oauth2-authorized-apps";
+  var TAB_ID = "oidc-authorized-apps";
 
   function onSettingsPage() {
     return window.location.pathname.replace(/\/+$/, "").endsWith("/settings");
@@ -40,7 +40,7 @@
 
     var button = document.createElement("button");
     button.className = "nav-link";
-    button.id = "settings-oauth2-tab";
+    button.id = "settings-oidc-tab";
     button.setAttribute("data-bs-toggle", "pill");
     button.setAttribute("data-bs-target", "#" + TAB_ID);
     button.setAttribute("role", "tab");
@@ -58,7 +58,7 @@
   }
 
   function loadApps(pane) {
-    fetch("/oauth2/authorizations?format=json", {
+    fetch("/oidc/authorizations?format=json", {
       credentials: "same-origin",
       headers: { Accept: "application/json" },
     })
@@ -125,7 +125,7 @@
   }
 
   function revoke(id, pane) {
-    fetch("/oauth2/authorizations/" + encodeURIComponent(id) + "/revoke", {
+    fetch("/oidc/authorizations/" + encodeURIComponent(id) + "/revoke", {
       method: "POST",
       credentials: "same-origin",
       headers: {

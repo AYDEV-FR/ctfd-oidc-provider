@@ -1,4 +1,4 @@
-"""Authlib authorization-server wiring for the CTFd OAuth2 IdP plugin.
+"""Authlib authorization-server wiring for the CTFd OIDC IdP plugin.
 
 This module configures CTFd as an OAuth2 Authorization Server / OpenID Connect
 Identity Provider. It supports:
@@ -35,10 +35,10 @@ from .models import OAuth2AuthorizationCode, OAuth2Client, OAuth2Token
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 # Where the RSA signing key is read/written. Override with the
-# OAUTH2_PROVIDER_JWK_FILE env var to keep it on a shared/persistent volume
+# OIDC_PROVIDER_JWK_FILE env var to keep it on a shared/persistent volume
 # (e.g. across Gunicorn workers or Kubernetes pods).
 JWK_PATH = os.environ.get(
-    "OAUTH2_PROVIDER_JWK_FILE", os.path.join(DIR_PATH, "jwks_private.json")
+    "OIDC_PROVIDER_JWK_FILE", os.path.join(DIR_PATH, "jwks_private.json")
 )
 
 # Default lifetime (seconds) for the various token types.
@@ -96,7 +96,7 @@ def issuer_url():
 
     from CTFd.utils import get_app_config
 
-    configured = get_app_config("OAUTH2_PROVIDER_ISSUER")
+    configured = get_app_config("OIDC_PROVIDER_ISSUER")
     if configured:
         return configured.rstrip("/")
     return request.url_root.rstrip("/")

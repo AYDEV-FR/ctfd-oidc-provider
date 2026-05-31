@@ -1,4 +1,4 @@
 Authlib>=1.2,<1.8
-# PyYAML is used for declarative app provisioning (OAUTH2_PROVIDER_APPS_FILE).
+# PyYAML is used for declarative app provisioning (OIDC_PROVIDER_APPS_FILE).
 # CTFd already ships it, but we declare it so the plugin is self-contained.
 PyYAML>=5.0

@@ -35,7 +35,7 @@
       {% if client.is_confidential %}
       <p><strong>Client secret:</strong> <em>hidden &mdash; rotate to generate a new one</em></p>
       <form method="POST"
-            action="{{ url_for('oauth2_provider.admin_rotate_secret', client_pk=client.id) }}"
+            action="{{ url_for('oidc_provider.admin_rotate_secret', client_pk=client.id) }}"
             onsubmit="return confirm('Rotate secret? The old secret will stop working immediately.');">
         <input type="hidden" name="nonce" value="{{ nonce }}">
         <button type="submit" class="btn btn-sm btn-outline-warning">Rotate secret</button>
@@ -46,7 +46,7 @@
   {% endif %}
 
   <form method="POST"
-        action="{{ url_for('oauth2_provider.admin_create_client') if is_new else url_for('oauth2_provider.admin_update_client', client_pk=client.id) }}">
+        action="{{ url_for('oidc_provider.admin_create_client') if is_new else url_for('oidc_provider.admin_update_client', client_pk=client.id) }}">
     <input type="hidden" name="nonce" value="{{ nonce }}">
 
     <div class="form-group">
@@ -141,7 +141,7 @@
     <button type="submit" class="btn btn-success">
       {{ "Register application" if is_new else "Save changes" }}
     </button>
-    <a href="{{ url_for('oauth2_provider.admin_clients') }}" class="btn btn-outline-secondary">Back</a>
+    <a href="{{ url_for('oidc_provider.admin_clients') }}" class="btn btn-outline-secondary">Back</a>
   </form>
 </div>
 

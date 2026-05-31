@@ -11,7 +11,7 @@
 <div class="container">
   <div class="row mb-3">
     <div class="col-md-12">
-      <a href="{{ url_for('oauth2_provider.admin_new_client') }}" class="btn btn-success">
+      <a href="{{ url_for('oidc_provider.admin_new_client') }}" class="btn btn-success">
         + Register application
       </a>
     </div>
@@ -35,7 +35,7 @@
           {% for client in clients %}
           <tr>
             <td>
-              <a href="{{ url_for('oauth2_provider.admin_edit_client', client_pk=client.id) }}">
+              <a href="{{ url_for('oidc_provider.admin_edit_client', client_pk=client.id) }}">
                 {{ client.client_name or "Unnamed app" }}
               </a>
             </td>
@@ -57,10 +57,10 @@
             </td>
             <td><small>{{ client.scope }}</small></td>
             <td class="text-right">
-              <a href="{{ url_for('oauth2_provider.admin_edit_client', client_pk=client.id) }}"
+              <a href="{{ url_for('oidc_provider.admin_edit_client', client_pk=client.id) }}"
                  class="btn btn-sm btn-outline-secondary">Edit</a>
               <form method="POST"
-                    action="{{ url_for('oauth2_provider.admin_delete_client', client_pk=client.id) }}"
+                    action="{{ url_for('oidc_provider.admin_delete_client', client_pk=client.id) }}"
                     style="display:inline"
                     onsubmit="return confirm('Delete this application? Existing tokens will stop working.');">
                 <input type="hidden" name="nonce" value="{{ Session.nonce }}">

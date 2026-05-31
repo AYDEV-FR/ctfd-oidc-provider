@@ -25,7 +25,7 @@
             <td><small>{{ row.token.issued_at }}</small></td>
             <td class="text-right">
               <form method="POST"
-                    action="{{ url_for('oauth2_provider.revoke_authorization', token_id=row.token.id) }}"
+                    action="{{ url_for('oidc_provider.revoke_authorization', token_id=row.token.id) }}"
                     onsubmit="return confirm('Revoke access for this application?');">
                 <input type="hidden" name="nonce" value="{{ Session.nonce }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>

@@ -63,7 +63,7 @@ mature, security-reviewed library.
 ## Installation
 
 > The plugin folder name becomes its Python import name. This document assumes
-> **`oauth2_provider`**. Keep that name unless you also update references.
+> **`oidc_provider`**. Keep that name unless you also update references.
 
 ### A. Classic plugin install
 
@@ -73,9 +73,9 @@ dependencies into the same environment CTFd runs in.
 ```bash
 # from the root of your CTFd checkout
 git clone https://github.com/AYDEV-FR/ctfd-oidc-provider.git \
-  CTFd/plugins/oauth2_provider
+  CTFd/plugins/oidc_provider
 
-pip install -r CTFd/plugins/oauth2_provider/requirements.txt
+pip install -r CTFd/plugins/oidc_provider/requirements.txt
 
 # restart CTFd
 ```
@@ -84,7 +84,7 @@ On first run the plugin:
 
 - creates its tables (`oauth2_clients`, `oauth2_codes`, `oauth2_tokens`)
   automatically — no manual migration needed;
-- generates an RSA signing key at `oauth2_provider/jwks_private.json`.
+- generates an RSA signing key at `oidc_provider/jwks_private.json`.
 
 > **Keep `jwks_private.json` private and persistent.** Deleting it invalidates
 > every previously issued `id_token`. In multi-worker / multi-host deployments,
@@ -104,7 +104,7 @@ Image layout:
 
 | Path | Contents |
 |------|----------|
-| `/plugin/oauth2_provider/` | the plugin package (code, templates, assets) |
+| `/plugin/oidc_provider/` | the plugin package (code, templates, assets) |
 | `/plugin/deps/` | vendored Python deps (Authlib, PyYAML) for `PYTHONPATH` |
 
 This lets you run the **upstream `ctfd/ctfd` image unchanged** and inject the
@@ -122,7 +122,7 @@ spec:
   initContainers:
     - name: install-oidc-plugin
       image: ghcr.io/aydev-fr/ctfd-oidc-provider:latest
-      command: ["sh", "-c", "cp -r /plugin/oauth2_provider/. /dst-plugin/ && cp -r /plugin/deps/. /dst-deps/"]
+      command: ["sh", "-c", "cp -r /plugin/oidc_provider/. /dst-plugin/ && cp -r /plugin/deps/. /dst-deps/"]
       volumeMounts:
         - { name: oidc-plugin, mountPath: /dst-plugin }
         - { name: oidc-deps,   mountPath: /dst-deps }
@@ -133,18 +133,18 @@ spec:
       env:
         # make the vendored deps importable, and pin a stable issuer/key
         - { name: PYTHONPATH, value: /opt/oidc-deps }
-        - { name: OAUTH2_PROVIDER_ISSUER, value: https://ctf.example.com }
+        - { name: OIDC_PROVIDER_ISSUER, value: https://ctf.example.com }
       volumeMounts:
         # mount ONLY the plugin subdir, so built-in CTFd plugins stay intact
-        - { name: oidc-plugin, mountPath: /opt/CTFd/CTFd/plugins/oauth2_provider }
+        - { name: oidc-plugin, mountPath: /opt/CTFd/CTFd/plugins/oidc_provider }
         - { name: oidc-deps,   mountPath: /opt/oidc-deps }
 ```
 
 Notes:
 
-- Mount the plugin at the **`oauth2_provider` subdirectory**, never over the
+- Mount the plugin at the **`oidc_provider` subdirectory**, never over the
   whole `plugins/` folder — otherwise CTFd's built-in plugins disappear.
-- Persist the signing key: set `OAUTH2_PROVIDER_JWK_FILE` to a path on a
+- Persist the signing key: set `OIDC_PROVIDER_JWK_FILE` to a path on a
   `PersistentVolume` (see [Configuration](#configuration)), or all pods will
   generate different keys.
 - Pin a real release tag (e.g. `:v1.0.0`) in production instead of `:latest`.
@@ -159,14 +159,14 @@ docker compose up --build
 ```
 
 Open <http://localhost:8000>, complete the CTFd setup wizard, and you'll see
-**OAuth2 Apps** under the admin **Plugins** menu.
+**OIDC Apps** under the admin **Plugins** menu.
 
 - The `Dockerfile` extends `ctfd/ctfd` and `pip install`s the requirements.
 - `AUTHLIB_INSECURE_TRANSPORT=1` is set so OAuth2 works over plain HTTP locally
   — **never** in production.
 - DB / uploads / logs persist in named volumes (`docker compose down -v` wipes them).
 - An example app set is auto-provisioned from
-  [`oauth2_apps.example.yaml`](oauth2_apps.example.yaml).
+  [`oidc_apps.example.yaml`](oidc_apps.example.yaml).
 
 **Try the full login flow** with the bundled demo relying-party:
 
@@ -186,9 +186,9 @@ All settings are read from environment variables (or the matching CTFd config ke
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OAUTH2_PROVIDER_ISSUER` | request host | The `iss` value in `id_token`s and discovery. Pin this behind a proxy. |
-| `OAUTH2_PROVIDER_APPS_FILE` | _unset_ | Path to a YAML file of apps to provision on startup (see below). |
-| `OAUTH2_PROVIDER_JWK_FILE` | `oauth2_provider/jwks_private.json` | Where the RSA signing key is read/written. Put it on a shared/persistent volume. |
+| `OIDC_PROVIDER_ISSUER` | request host | The `iss` value in `id_token`s and discovery. Pin this behind a proxy. |
+| `OIDC_PROVIDER_APPS_FILE` | _unset_ | Path to a YAML file of apps to provision on startup (see below). |
+| `OIDC_PROVIDER_JWK_FILE` | `oidc_provider/jwks_private.json` | Where the RSA signing key is read/written. Put it on a shared/persistent volume. |
 | `AUTHLIB_INSECURE_TRANSPORT` | _unset_ | Set to `1` to allow plain HTTP. **Local dev only.** |
 
 Behind a reverse proxy, make sure CTFd sees the correct external scheme/host
@@ -199,7 +199,7 @@ the issuer are correct.
 
 ## Registering an application
 
-Go to **Admin → Plugins → OAuth2 Apps → Register application** and choose:
+Go to **Admin → Plugins → OIDC Apps → Register application** and choose:
 
 - **Confidential** — a client secret is generated and shown **once**. Use
   `client_secret_basic` (default) or `client_secret_post`.
@@ -213,11 +213,11 @@ Set one or more exact **redirect URIs**, pick the **scopes**, optionally enable
 ## Declarative provisioning from YAML
 
 Define applications as code and mount the file into the container; set
-`OAUTH2_PROVIDER_APPS_FILE` to its path. On every startup the plugin
+`OIDC_PROVIDER_APPS_FILE` to its path. On every startup the plugin
 **upserts** the listed apps (matched by `client_id`).
 
 ```yaml
-# oauth2_apps.yaml
+# oidc_apps.yaml
 applications:
   - name: My Web App
     client_id: my-web-app             # required — the stable upsert key
@@ -269,8 +269,8 @@ behaves identically; only the interactive consent step is bypassed.
 | UserInfo | `/oauth/userinfo` | Bearer access token |
 | Revocation | `/oauth/revoke` | client auth |
 | Introspection | `/oauth/introspect` | client auth |
-| Admin: manage apps | `/admin/oauth2` | CTFd admin |
-| User: authorized apps | `/oauth2/authorizations` | CTFd user |
+| Admin: manage apps | `/admin/oidc` | CTFd admin |
+| User: authorized apps | `/oidc/authorizations` | CTFd user |
 
 ---
 

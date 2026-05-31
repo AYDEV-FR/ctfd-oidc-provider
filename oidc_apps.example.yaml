@@ -1,6 +1,6 @@
-# Declarative OAuth2 application definitions for the CTFd OAuth2 IdP plugin.
+# Declarative OAuth2 application definitions for the CTFd OIDC IdP plugin.
 #
-# Mount this file into the container and point OAUTH2_PROVIDER_APPS_FILE at it
+# Mount this file into the container and point OIDC_PROVIDER_APPS_FILE at it
 # (see docker-compose.yml). Apps are matched by `client_id` and upserted on
 # every startup: edit + restart to apply changes. Removing an entry here does
 # NOT delete the app — remove it from the admin UI.
