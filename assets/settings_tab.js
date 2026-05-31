@@ -117,8 +117,15 @@
 
     pane.querySelectorAll("[data-revoke]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        if (!window.confirm("Revoke access for this application?")) return;
+        // Revoke directly — no native confirm() dialog. Two-click guard: the
+        // first click arms the button, the second performs the revoke.
+        if (btn.getAttribute("data-armed") !== "1") {
+          btn.setAttribute("data-armed", "1");
+          btn.textContent = "Click again to revoke";
+          return;
+        }
         btn.disabled = true;
+        btn.textContent = "Revoking…";
         revoke(btn.getAttribute("data-revoke"), pane);
       });
     });
