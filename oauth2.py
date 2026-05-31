@@ -333,3 +333,16 @@ def config_oauth(app):
 
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
     require_oauth.register_token_validator(bearer_cls())
+
+    # Security: without a pinned issuer, issuer_url() falls back to the request
+    # Host header, which a client can spoof — letting the id_token `iss` (and
+    # discovery URLs) reflect an attacker-controlled host. Strongly recommend
+    # pinning OIDC_PROVIDER_ISSUER in any real deployment.
+    from CTFd.utils import get_app_config
+
+    if not (os.environ.get("OIDC_PROVIDER_ISSUER") or get_app_config("OIDC_PROVIDER_ISSUER")):
+        app.logger.warning(
+            "OIDC IdP: OIDC_PROVIDER_ISSUER is not set; the issuer will be "
+            "derived from the request Host header (spoofable). Set it to your "
+            "external HTTPS URL in production."
+        )

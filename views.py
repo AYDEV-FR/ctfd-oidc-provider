@@ -131,25 +131,31 @@ def load_blueprint():
 
         user = get_current_user()
 
+        # Validate the authorization request on BOTH GET and POST. The consent
+        # form posts to action="" so the original query string (and thus the
+        # PKCE/scope parameters) is preserved, letting us enforce the same
+        # checks on the POST path. Doing this only on GET would let a public
+        # client obtain a code without PKCE by going straight to POST.
+        try:
+            grant = authorization.get_consent_grant(end_user=user)
+        except OAuth2Error as error:
+            return jsonify(dict(error.get_body())), error.status_code
+
+        client = grant.client
+        # Enforce PKCE for public clients (no client secret) at the request
+        # level, regardless of HTTP method.
+        if not client.is_confidential and not request.args.get("code_challenge"):
+            return (
+                jsonify(
+                    {
+                        "error": "invalid_request",
+                        "error_description": "code_challenge is required for public clients (PKCE).",
+                    }
+                ),
+                400,
+            )
+
         if request.method == "GET":
-            try:
-                grant = authorization.get_consent_grant(end_user=user)
-            except OAuth2Error as error:
-                return jsonify(dict(error.get_body())), error.status_code
-
-            client = grant.client
-            # Enforce PKCE for public clients (no client secret).
-            if not client.is_confidential and not request.args.get("code_challenge"):
-                return (
-                    jsonify(
-                        {
-                            "error": "invalid_request",
-                            "error_description": "code_challenge is required for public clients (PKCE).",
-                        }
-                    ),
-                    400,
-                )
-
             # Trusted (first-party) apps skip the consent screen and are
             # auto-approved on behalf of the logged-in user.
             if client.is_trusted:
@@ -383,9 +389,29 @@ def load_blueprint():
     return blueprint
 
 
+def _safe_uri(value):
+    """Return an http(s) URI or empty string.
+
+    Rejects other schemes (e.g. ``javascript:``) so a stored client_uri can't
+    turn into an XSS vector when rendered as a link on the consent page.
+    """
+    value = (value or "").strip()
+    if value and not value.lower().startswith(("http://", "https://")):
+        return ""
+    return value
+
+
 def _apply_client_metadata(client, auth_method):
     """Read the admin form and write the Authlib client metadata blob."""
     redirect_uris = split_lines(request.form.get("redirect_uris"))
+    # A client with no redirect URI is dangerous (Authlib may accept an
+    # arbitrary one at authorization time); require at least one.
+    if not redirect_uris:
+        abort(400, "At least one redirect URI is required.")
+    for uri in redirect_uris:
+        if not uri.lower().startswith(("http://", "https://")) and "://" not in uri:
+            abort(400, "Redirect URIs must be absolute URIs.")
+
     selected_scopes = request.form.getlist("scopes")
     if not selected_scopes:
         selected_scopes = ["openid", "profile", "email"]
@@ -396,7 +422,7 @@ def _apply_client_metadata(client, auth_method):
 
     metadata = {
         "client_name": request.form.get("client_name", "").strip() or "Unnamed app",
-        "client_uri": request.form.get("client_uri", "").strip(),
+        "client_uri": _safe_uri(request.form.get("client_uri")),
         "redirect_uris": redirect_uris,
         "grant_types": grant_types,
         "response_types": ["code"],

@@ -23,14 +23,14 @@ Behaviour:
 * Apps are matched by ``client_id`` and **upserted** on every startup, so
   editing the file and restarting applies the changes (IaC style).
 * Public apps get ``token_endpoint_auth_method: none`` (PKCE enforced).
+* Confidential apps MUST provide an explicit ``client_secret`` (secrets are
+  never auto-generated or written to the log).
 * Removing an app from the file does NOT delete it (delete it in the admin UI),
   to avoid accidental data loss.
 """
 
 import os
 import time
-
-from authlib.common.security import generate_token
 
 from CTFd.models import db
 
@@ -126,7 +126,15 @@ def _upsert(app, entry):
         raise ValueError("type must be 'public' or 'confidential'")
 
     redirect_uris = [u.strip() for u in _as_list(entry.get("redirect_uris")) if u and str(u).strip()]
+    if not redirect_uris:
+        raise ValueError("at least one redirect_uri is required")
     scopes = _as_list(entry.get("scopes")) or list(DEFAULT_SCOPES)
+
+    client_uri = str(entry.get("client_uri") or "").strip()
+    if client_uri and not client_uri.lower().startswith(("http://", "https://")):
+        # Reject non-http(s) schemes (e.g. javascript:) that would otherwise be
+        # rendered as a link on the consent page.
+        client_uri = ""
 
     grant_types = _as_list(entry.get("grant_types"))
     if not grant_types:
@@ -147,7 +155,7 @@ def _upsert(app, entry):
     client.set_client_metadata(
         {
             "client_name": str(entry.get("name") or client_id),
-            "client_uri": str(entry.get("client_uri") or ""),
+            "client_uri": client_uri,
             "redirect_uris": redirect_uris,
             "grant_types": grant_types,
             "response_types": ["code"],
@@ -165,12 +173,11 @@ def _upsert(app, entry):
         if secret:
             client.client_secret = str(secret)
         elif existing is None:
-            # No secret supplied for a new confidential app — generate one and
-            # surface it in the logs so the operator can retrieve it.
-            secret = generate_token(48)
-            client.client_secret = secret
-            app.logger.warning(
-                "OIDC IdP: generated client_secret for '%s': %s", client_id, secret
+            # Never auto-generate-and-log a secret: writing credentials to the
+            # application log is a disclosure risk. For IaC the operator must
+            # provide the secret explicitly (e.g. from a sealed secret / vault).
+            raise ValueError(
+                "client_secret is required for confidential app '%s'" % client_id
             )
 
     if existing is None:
