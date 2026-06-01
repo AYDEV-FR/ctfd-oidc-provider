@@ -387,3 +387,10 @@ OCI image is built and published by
 
 Issues and pull requests welcome at
 <https://github.com/AYDEV-FR/ctfd-oidc-provider>.
+
+---
+
+## License
+
+Licensed under the **Apache License, Version 2.0** — see [LICENSE](LICENSE) and
+[NOTICE](NOTICE). This matches the license of CTFd itself.

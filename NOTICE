@@ -1,0 +1,8 @@
+CTFd OIDC / OAuth2 Identity Provider plugin
+Copyright 2026 AYDEV-FR
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This software builds on:
+  - CTFd (https://github.com/CTFd/CTFd), Apache License 2.0
+  - Authlib (https://authlib.org/), BSD 3-Clause License
