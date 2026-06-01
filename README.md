@@ -358,6 +358,16 @@ curl -H "Authorization: Bearer ACCESS_TOKEN" \
   parties should treat them as the IdP's assertion of role.
 - Always serve over HTTPS in production and keep the signing key persistent and
   secret.
+- **Pin `OIDC_PROVIDER_ISSUER`** in production. Without it the issuer is derived
+  from the request `Host` header, which a client can spoof — affecting the
+  `id_token` `iss` claim and discovery URLs. A startup warning is logged when it
+  is unset.
+- **Provisioning never auto-generates or logs client secrets.** A confidential
+  app defined in the YAML file must include an explicit `client_secret` (supply
+  it from a sealed secret / vault); otherwise provisioning fails for that app.
+- Every application must declare at least one **absolute http(s) redirect URI**;
+  `client_uri` is restricted to http(s) so it can't become a `javascript:` link
+  on the consent screen.
 
 ---
 
