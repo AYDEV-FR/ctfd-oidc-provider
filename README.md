@@ -1,8 +1,10 @@
 # CTFd OIDC / OAuth2 Identity Provider
 
+[![Release](https://img.shields.io/badge/release-v1.0.1-brightgreen)](https://github.com/AYDEV-FR/ctfd-oidc-provider/releases/tag/v1.0.1)
 [![Build OCI image](https://github.com/AYDEV-FR/ctfd-oidc-provider/actions/workflows/build-oci.yml/badge.svg)](https://github.com/AYDEV-FR/ctfd-oidc-provider/actions/workflows/build-oci.yml)
 [![CI](https://github.com/AYDEV-FR/ctfd-oidc-provider/actions/workflows/ci.yml/badge.svg)](https://github.com/AYDEV-FR/ctfd-oidc-provider/actions/workflows/ci.yml)
-[![Container image](https://img.shields.io/badge/ghcr.io-aydev--fr%2Fctfd--oidc--provider-blue?logo=docker)](https://github.com/AYDEV-FR/ctfd-oidc-provider/pkgs/container/ctfd-oidc-provider)
+[![Container image](https://img.shields.io/badge/ghcr.io-aydev--fr%2Fctfd--oidc--provider%3A1.0.1-blue?logo=docker)](https://github.com/AYDEV-FR/ctfd-oidc-provider/pkgs/container/ctfd-oidc-provider)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 A CTFd plugin that turns your CTFd instance into an **OAuth2 Authorization Server
 and OpenID Connect (OIDC) Identity Provider**. Other applications can then offer
